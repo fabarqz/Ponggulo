@@ -9,4 +9,4 @@ The up and down buttons are used for controlling the player paddle.
 
 To score a goal you only need to make sure the 'white' ball gets past the computer paddle's boundary. 
 
-The rest of the balls do not affect the score and are simply there to influence the balls movement for added variety, hence the name of this project Ponggulo. 
+The rest of the balls do not affect the score and are simply there to influence the scoring balls movement for added variety, hence the name of this project Ponggulo. 
