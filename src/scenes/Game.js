@@ -1,6 +1,7 @@
 /**@type {Phaser.Physics.Arcade.StaticBody} */
 
 import {CST} from "../CST"
+import WebFontFile from "./webFontfile";
 
 export class Game extends Phaser.Scene{
   constructor(){
@@ -14,7 +15,8 @@ export class Game extends Phaser.Scene{
     this.rightScore=0;
   }
   preload(){
-
+    const fonts=new WebFontFile(this.load,'Pixelify Sans');
+    this.load.addFile(fonts);
   }
   create(){
 
@@ -62,8 +64,10 @@ export class Game extends Phaser.Scene{
 
     const textStyle=
       {
-        fontSize:60
+        fontSize:60,
+        fontFamily:'"Pixelify Sans"'
       }
+
     
     this.add.text(300,55,'You',{fontSize:40}).setOrigin(0.5,0.5)
     this.leftScoreLabel=this.add.text(300,125,'0',textStyle).setOrigin(0.5,0.5)
@@ -96,6 +100,12 @@ export class Game extends Phaser.Scene{
       if(this.paddleLeft.y<=0){
         this.paddleLeft.y+=80;
       }
+      body.updateFromGameObject();
+    }
+
+    //emergency reset button if balls are stuck bouncing on a parallel to the paddle
+    if (this.cursors.space.isDown){
+      this.resetBall()
       body.updateFromGameObject();
     }
 

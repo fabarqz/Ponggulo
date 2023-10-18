@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { LoadScene } from "./scenes/LoadScene";
 import { MenuScene } from "./scenes/MenuScene";
 import { TitleScene } from "./scenes/TitleScene";
+import { GameBackground } from './scenes/gameBackground';
 
 const config={
   width:800,
