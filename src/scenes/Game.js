@@ -2,7 +2,13 @@
 
 import {CST} from "../CST"
 import WebFontFile from "./webFontfile";
-
+import { COLORS } from "../consts/Colors";
+import { GameBackground } from "./gameBackground";
+const GameState={
+  Running:'running',
+  PlayerWon:'player-won',
+  ComputerWon:'computer-won'
+}
 export class Game extends Phaser.Scene{
   constructor(){
     super({
@@ -10,22 +16,19 @@ export class Game extends Phaser.Scene{
     })
   }
   init(){
+    
     this.paddleRightVelocity=new Phaser.Math.Vector2(0,0);
     this.leftScore=0;
     this.rightScore=0;
   }
-  preload(){
-    const fonts=new WebFontFile(this.load,'Pixelify Sans');
-    this.load.addFile(fonts);
-  }
   create(){
 
     this.physics.world.setBounds(-100,0,1000,500)
-    this.ball=this.add.circle(400,250,10,0xffffff,1);
-    this.ball2=this.add.circle(300,150,15,0x0000cc,1);
-    this.ball3=this.add.circle(450,300,20,0xffea00,1);
+    this.ball=this.add.circle(400,250,10,COLORS.WHITE,1);
+    this.ball2=this.add.circle(300,150,15,COLORS.BLUE,1);
+    this.ball3=this.add.circle(450,300,20,COLORS.YELLOW,1);
     this.paddleLeft=this.add.rectangle(20,220,20,100,0xf40000,1);
-    this.paddleRight=this.add.rectangle(780,220,20,100,0xffffff,1);
+    this.paddleRight=this.add.rectangle(780,220,20,100,COLORS.WHITE,1);
     this.cursors=this.input.keyboard.createCursorKeys();
     this.ball.setPosition(400,250);
     
@@ -65,7 +68,7 @@ export class Game extends Phaser.Scene{
     const textStyle=
       {
         fontSize:60,
-        fontFamily:'"Pixelify Sans"'
+        fontFamily:'"Press Start 2P"'
       }
 
     
@@ -77,51 +80,120 @@ export class Game extends Phaser.Scene{
   }
 
   update(){
-    
-    const ball=this.ball.body;
-    const body=this.paddleLeft.body;
-    const aiBody=this.paddleRight.body
-    const diff=this.ball.y-this.paddleRight.y
-    const aiSpeed=2;
-    
 
+    if(this.paused){
+      return
+    }
+
+    this.body=this.paddleLeft.body;
+    //handles player movement
     if(this.cursors.down.isDown){
-      console.log('down');
+      
       this.paddleLeft.y+=10;
       if(this.paddleLeft.y>=500){
         this.paddleLeft.y-=80;
       }
-      body.updateFromGameObject();
+      this.body.updateFromGameObject();
 
     }
     else if(this.cursors.up.isDown){
-      console.log('up');
+      
       this.paddleLeft.y-=10;
       if(this.paddleLeft.y<=0){
         this.paddleLeft.y+=80;
       }
-      body.updateFromGameObject();
+      this.body.updateFromGameObject();
     }
-
     //emergency reset button if balls are stuck bouncing on a parallel to the paddle
-    if (this.cursors.space.isDown){
-      this.resetBall()
-      body.updateFromGameObject();
-    }
+    this.softReset();
 
     //simple score handling
+    this.updateScore();
+
+    //logic to allow the right paddle to track the ball
+    this.updateAI();
+
+
+  }
+  
+  playerMovement(){
+
+
+    
+  }
+
+  softReset(){
+    if (this.cursors.space.isDown){
+      this.resetBall()
+    }
+  }
+
+  incrementRightScore(){
+    this.rightScore+=1;
+    this.RightScoreLabel.text=this.rightScore.toString();
+  }
+  incrementLeftScore(){
+    this.leftScore+=1;
+    this.leftScoreLabel.text=this.leftScore.toString();
+  }
+
+  updateScore(){
+    const ball=this.ball.body;
+    const ball2=this.ball2.body;
+    const ball3=this.ball3.body;
     if(ball.x<=0){
-      console.log('right side score');
+      this.paused=true;
       this.incrementRightScore();
       this.resetBall();
+
     }
     if(ball.x>=780){
-      console.log('left side score');
+      this.paused=true;
       this.incrementLeftScore();
       this.resetBall();
     }
 
-    //tracking logic for right paddle to simulate computer player
+    const maxScore=1
+    if(this.leftScore>=maxScore){
+      //player won
+      console.log('player won')
+      this.gameState=GameState.PlayerWon;
+    }
+    else if(this.rightScore>=maxScore){
+      console.log('Computer Won')
+      this.gameState=GameState.ComputerWon;
+    }
+
+    if(this.gameState==GameState.PlayerWon||this.gameState==GameState.ComputerWon){
+      this.ball.active=false;
+      this.physics.world.remove(ball);
+      this.physics.world.remove(ball2);
+      this.physics.world.remove(ball3);
+      this.scene.stop(CST.SCENES.BACKGROUND);
+      this.scene.start(CST.SCENES.GAMEOVER,{
+        leftScore:this.leftScore,
+        rightScore:this.rightScore,
+      });
+    }
+  }
+
+  resetBall(){
+    this.ball.setPosition(400,250);
+    this.ball2.setPosition(300,150);
+    this.ball3.setPosition(450,300);
+    const angel=Phaser.Math.Between(0,360);
+    const vec=this.physics.velocityFromAngle(angel);
+    const ballSpeed=5;
+    this.ball.body.setVelocity(vec.x*ballSpeed,vec.y*ballSpeed);
+    this.ball2.body.setVelocity(-vec.x*ballSpeed*0.75,vec.y*ballSpeed*0.75);
+    this.ball3.body.setVelocity(-vec.x*ballSpeed*1.2,vec.y*ballSpeed*1.2);
+  }
+
+  updateAI(){
+    const aiBody=this.paddleRight.body
+    const diff=this.ball.y-this.paddleRight.y
+    const aiSpeed=2;
+     //tracking logic for right paddle to simulate computer player
     if(diff<0){
       this.paddleRightVelocity.y=-aiSpeed;
       if(this.paddleRightVelocity.y<-10){
@@ -133,28 +205,8 @@ export class Game extends Phaser.Scene{
         this.paddleRightVelocity.y=+10;
       }
     }
-
     this.paddleRight.y+=this.paddleRightVelocity.y;
     aiBody.updateFromGameObject();
-  }
 
-  incrementRightScore(){
-    this.rightScore+=1;
-    this.RightScoreLabel.text=this.rightScore.toString();
-  }
-  incrementLeftScore(){
-    this.leftScore+=1;
-    this.leftScoreLabel.text=this.leftScore.toString();
-  }
-  resetBall(){
-    this.ball.setPosition(400,250);
-    this.ball2.setPosition(300,150);
-    this.ball3.setPosition(450,300);
-    const angel=Phaser.Math.Between(0,360);
-    const vec=this.physics.velocityFromAngle(angel);
-    const ballSpeed=5;
-    this.ball.body.setVelocity(vec.x*ballSpeed,vec.y*ballSpeed);
-    this.ball2.body.setVelocity(-vec.x*ballSpeed*0.75,vec.y*ballSpeed*0.75);
-    this.ball3.body.setVelocity(-vec.x*ballSpeed*1.2,vec.y*ballSpeed*1.2);
   }
 }
